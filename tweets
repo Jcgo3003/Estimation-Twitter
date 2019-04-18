@@ -1,0 +1,79 @@
+#!/usr/bin/env python3
+
+import os
+import sys
+
+from twython import Twython
+from twython import TwythonAuthError, TwythonError, TwythonRateLimitError
+from analyzer import Analyzer
+from termcolor import colored
+
+def main():
+    # Ensure proper usage
+    if len(sys.argv) != 2:
+        sys.exit("Usage: ./tweets user")
+
+    # Setting up screen_name and count
+    screen_name = sys.argv[1]
+    count = 50
+
+    # ensure environment variables are set
+    if not os.environ.get("API_KEY"):
+        raise RuntimeError("API_KEY not set")
+    if not os.environ.get("API_SECRET"):
+        raise RuntimeError("API_SECRET not set")
+
+    # Ensure getting 50 tweets
+    if count < 1 or count > 50:
+        raise RuntimeError("invalid count")
+        sys.exit("invalid count")
+
+    try:
+        # Setting up environment variables # obtengo las enviroment claves
+        twitter = Twython(os.environ.get("API_KEY"), os.environ.get("API_SECRET"))
+
+        # Look up for the user # creo que aqui busca a los usurios para estar seguroo que la cuenta no es privada
+        user = twitter.lookup_user(screen_name=screen_name.lstrip("@"))
+        if user[0]["protected"]:#para proteger el programa aqui esta tomando el User[0] como el que queremos
+            return None
+            sys.exit("Private account")
+
+        # Getting the tweets
+        tweets = twitter.get_user_timeline(screen_name = screen_name , count = 50)
+
+        ## Initailize analizer ##
+        # absolute paths to lists
+        positives = os.path.join(sys.path[0], "positive-words.txt")
+        negatives = os.path.join(sys.path[0], "negative-words.txt")
+
+        # feeding analyser
+        analyzer = Analyzer(positives, negatives)
+
+        # analyze word each tweet
+        for i in range (0, 50):
+            score = analyzer.analyze(tweets[i]['text'])
+            if score > 0.0:
+                print(colored(score, "green"), end="")
+                print(" ", end="")
+                print(colored(tweets[i]['text'], "green"))
+            elif score < 0.0:
+                print(colored(score, "red"), end="")
+                print(" ", end="")
+                print(colored(tweets[i]['text'], "red"))
+            else:
+                print(colored(score, "yellow"), end="")
+                print(" ", end="")
+                print(colored(tweets[i]['text'], "yellow"))
+
+    except TwythonAuthError:
+        raise RuntimeError("invalid API_KEY and/or API_SECRET") from None
+        sys.exit("invalid API_KEY and/or API_SECRET")
+    except TwythonRateLimitError:
+        raise RuntimeError("you've hit a rate limit") from None
+        sys.exit("you've hit a rate limit")
+    except TwythonError:
+        sys.exit("Twython Error")
+        return None
+
+if __name__ == "__main__":
+    main()

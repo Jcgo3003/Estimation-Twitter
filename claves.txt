@@ -1,0 +1,3 @@
+datos sentiments
+export API_KEY=P6hCYrRhyKiCYtpR58grTj1bp
+export API_SECRET=bKWdo9g9MaZi2OYHHSGacFRELUwmG1JhGvf3rG562J11VKDGd5
